@@ -1,0 +1,8 @@
+{
+  "name": "Ethereal Campus",
+  "description": "A refined, AI-powered campus companion for students, featuring schedule management, leave requests, and digital identity services.",
+  "requestFramePermissions": [
+    "camera"
+  ],
+  "majorCapabilities": []
+}
