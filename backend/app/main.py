@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.core.config import settings
-from app.api.routes import auth, users, persons, approvals, briefing, dashboard, notifications
+from app.api.routes import auth, users, persons, approvals, briefing, dashboard, notifications, student
 
 # ---- 统一日志配置（必须在导入其他 app 模块前执行） ----
 LOGGING_CONFIG = {
@@ -93,6 +93,7 @@ api_v1.include_router(approvals.router)
 api_v1.include_router(briefing.router)
 api_v1.include_router(dashboard.router)
 api_v1.include_router(notifications.router)
+api_v1.include_router(student.router)
 app.mount("/api/v1", api_v1)
 
 

@@ -21,6 +21,15 @@ from app.schemas.approval import (
     ApprovalStatsResponse,
 )
 from app.schemas.common import PaginatedResponse, ApiResponse
+from app.schemas.student import (
+    StudentLoginRequest, StudentRegisterRequest, StudentLoginResponse,
+    StudentProfileResponse, ChangePasswordRequest,
+)
+from app.schemas.student_schedule import CourseCreate, CourseResponse, OcrCourseResponse
+from app.schemas.student_leave import LeaveApplyRequest, LeaveRequestResponse, VoiceParseRequest, VoiceParseResponse
+from app.schemas.student_task import TaskResponse
+from app.schemas.student_notification import NotificationResponse, MarkReadRequest
+from app.schemas.student_home import StudentHomeResponse, AISummarizedNotice
 
 __all__ = [
     "Token",
@@ -44,4 +53,22 @@ __all__ = [
     "ApprovalStatsResponse",
     "PaginatedResponse",
     "ApiResponse",
+    # 学生端 Schema
+    "StudentLoginRequest",
+    "StudentRegisterRequest",
+    "StudentLoginResponse",
+    "StudentProfileResponse",
+    "ChangePasswordRequest",
+    "CourseCreate",
+    "CourseResponse",
+    "OcrCourseResponse",
+    "LeaveApplyRequest",
+    "LeaveRequestResponse",
+    "VoiceParseRequest",
+    "VoiceParseResponse",
+    "TaskResponse",
+    "NotificationResponse",
+    "MarkReadRequest",
+    "StudentHomeResponse",
+    "AISummarizedNotice",
 ]

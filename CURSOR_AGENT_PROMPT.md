@@ -11,8 +11,8 @@
 | 组成部分 | 说明 | 状态 |
 |---------|------|------|
 | **管理端 Web** | 面向管理员/老师的 Web 管理界面 | ✅ 已完成，前后端已接入 |
-| **学生端 App v2** | 面向学生的移动端 React SPA（ethereal-campus-2） | ⚠️ 前端已完成，后端待开发 |
-| **共享 FastAPI 后端** | 管理端 + 学生端共用同一后端 | ⚠️ 管理端 API 已完成，学生端 API 待开发 |
+| **学生端 App v2** | 面向学生的移动端 React SPA（ethereal-campus-2） | ✅ 前端已完成，后端已完成（前后端已接入） |
+| **共享 FastAPI 后端** | 管理端 + 学生端共用同一后端 | ✅ 管理端 API + 学生端 API 全部完成 |
 
 ### GitHub 仓库
 
@@ -52,14 +52,15 @@ smart-campus/
 │   ├── .env.production         # ★ 生产环境配置模板（已上传 git）
 │   └── app/
 │       ├── main.py             # FastAPI 入口
-│       ├── api/routes/         # 已实现：auth, users, persons, approvals, notifications, dashboard, briefing
-│       ├── models/             # 已实现：User, Person, ApprovalRequest, Notification, DailyBriefing, AuditLog
-│       ├── schemas/            # 已实现：auth, user, person, approval, common, validators
-│       ├── services/           # 已实现：auth, person, approval, notification, ai_briefing, ai_risk, audit
+│       ├── api/routes/         # 已实现：auth, users, persons, approvals, notifications, dashboard, briefing, student
+│       ├── models/             # 已实现：User, Person, ApprovalRequest, Notification, DailyBriefing, AuditLog,
+│                              # StudentAccount, StudentSchedule, StudentLeave, StudentTask, StudentNotification, StudentAccessLog
+│       ├── schemas/            # 已实现：auth, user, person, approval, common, validators, student系列schemas
+│       ├── services/           # 已实现：auth, person, approval, notification, ai_briefing, ai_risk, audit, student系列services
 │       └── core/              # config, database, security, types
 │
 ├── ethereal-campus/            # 学生端 App v1（参考，不开发）
-├── ethereal-campus-2/         # ★ 学生端 App v2（需要开发后端并接入）
+├── ethereal-campus-2/         # ★ 学生端 App v2（前后端已完成接入）
 │   └── src/
 │       ├── App.tsx
 │       ├── types.ts            # TypeScript 接口定义
