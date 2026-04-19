@@ -16,10 +16,12 @@ import {
   Loader2,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import * as XLSX from 'xlsx';
 import {
   getPersonList,
   getPersonStats,
   createPerson,
+  batchImportPersons,
   type Person,
   type PersonStats,
 } from '../../services/person.service';
@@ -143,34 +145,94 @@ export default function PersonnelView({
     }
   };
 
-  const handleFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || !e.target.files[0]) return;
     const file = e.target.files[0];
     setUploadedFile(file.name);
     setCleaningProgress(0);
     setCleaningStatus('正在解析 Excel 文件...');
-    let progress = 0;
 
-    if (cleaningIntervalRef.current) {
-      clearInterval(cleaningIntervalRef.current);
+    try {
+      // Step 1: Parse Excel
+      setCleaningStatus('解析 Excel 文件...');
+      setCleaningProgress(10);
+      const arrayBuffer = await file.arrayBuffer();
+      const workbook = XLSX.read(new Uint8Array(arrayBuffer), { type: 'array' });
+      const sheetName = workbook.SheetNames[0];
+      const sheet = workbook.Sheets[sheetName];
+      const rawData = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet);
+
+      if (rawData.length === 0) {
+        showToast('error', 'Excel 文件内容为空');
+        setCleaningProgress(0);
+        return;
+      }
+
+      setCleaningProgress(30);
+      setCleaningStatus('正在校验数据格式...');
+
+      // Step 2: Map Excel rows to person objects
+      // Support common column name variations
+      const persons = rawData
+        .map((row, idx) => {
+          const student_id =
+            String(row['学号/工号'] ?? row['学号'] ?? row['工号'] ?? row['student_id'] ?? row['学号'] ?? '').trim();
+          const name =
+            String(row['姓名'] ?? row['name'] ?? '').trim();
+          const dept =
+            String(row['部门/班级'] ?? row['部门'] ?? row['班级'] ?? row['dept'] ?? row['department'] ?? '').trim();
+          const type =
+            String(row['类型'] ?? row['type'] ?? row['role_type'] ?? 'student').trim().toLowerCase();
+
+          // Map Chinese type to role_type
+          let role_type = 'student';
+          if (type === 'teacher' || type === '教师' || type === '教职员工') {
+            role_type = 'teacher';
+          } else if (type === 'operator' || type === '运营人员' || type === '运营') {
+            role_type = 'operator';
+          } else if (type === 'admin' || type === '管理员') {
+            role_type = 'admin';
+          } else if (type.includes('教')) {
+            role_type = 'teacher';
+          }
+
+          return { student_id, name, dept, role_type };
+        })
+        .filter(p => p.student_id && p.name); // Only keep rows with both student_id and name
+
+      if (persons.length === 0) {
+        showToast('error', '未能从 Excel 中解析出有效人员数据，请检查表头格式');
+        setCleaningProgress(0);
+        return;
+      }
+
+      setCleaningProgress(50);
+      setCleaningStatus(`准备导入 ${persons.length} 条人员数据...`);
+
+      // Step 3: Call batch import API
+      setCleaningProgress(60);
+      setCleaningStatus(`正在上传 ${persons.length} 条数据...`);
+      const result = await batchImportPersons(persons);
+
+      setCleaningProgress(100);
+      setCleaningStatus('数据导入完成！');
+      showToast('success', `导入完成：成功 ${result.success_count} 条，失败 ${result.fail_count} 条`);
+
+      // Step 4: Refresh list
+      loadPersons();
+      onRefresh?.();
+
+    } catch (err) {
+      console.error('Batch import error:', err);
+      setCleaningProgress(0);
+      setCleaningStatus('');
+      showToast('error', (err as Error).message || '批量导入失败，请检查文件格式');
     }
 
-    cleaningIntervalRef.current = setInterval(() => {
-      progress += Math.random() * 15;
-      if (progress >= 100) {
-        progress = 100;
-        setCleaningStatus('数据清洗完成！');
-        if (cleaningIntervalRef.current) {
-          clearInterval(cleaningIntervalRef.current);
-          cleaningIntervalRef.current = null;
-        }
-        loadPersons();
-        onRefresh?.();
-      } else {
-        setCleaningStatus(`AI 智能分析中... ${Math.round(progress)}%`);
-      }
-      setCleaningProgress(progress);
-    }, 300);
+    // Reset file input so same file can be re-selected
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   const handleAddPerson = async () => {
