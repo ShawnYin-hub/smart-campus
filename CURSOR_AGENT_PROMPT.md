@@ -1,192 +1,284 @@
-# Cursor Agent Prompt — Ethereal Campus 学生端后端开发（v2）
+# Cursor Agent Prompt — 智能校园系统 服务器端部署 + 学生端后端开发
 
 ---
 
 ## 一、项目概述
 
-**项目名称：** BHSFIC 智慧校园管理系统 — 学生端（Ethereal Campus v2）
+### 项目定位
 
-**GitHub 仓库：** `https://github.com/ShawnYin-hub/smart-campus.git`
+**BHSFIC 智能校园管理系统** — 一个面向校园的智慧管理平台，分为三个组成部分：
 
-**仓库结构（本次开发目标）：**
+| 组成部分 | 说明 | 状态 |
+|---------|------|------|
+| **管理端 Web** | 面向管理员/老师的 Web 管理界面 | ✅ 已完成，前后端已接入 |
+| **学生端 App v2** | 面向学生的移动端 React SPA（ethereal-campus-2） | ⚠️ 前端已完成，后端待开发 |
+| **共享 FastAPI 后端** | 管理端 + 学生端共用同一后端 | ⚠️ 管理端 API 已完成，学生端 API 待开发 |
+
+### GitHub 仓库
+
+```
+https://github.com/ShawnYin-hub/smart-campus
+```
+
+---
+
+## 二、仓库结构
 
 ```
 smart-campus/
-├── ethereal-campus-2/       ← ★ 本次需要开发后端并接入的 App（v2）
-│   └── src/
-│       ├── App.tsx              ← 入口，含全局状态管理
-│       ├── types.ts             ← TypeScript 接口定义
-│       └── components/
-│           ├── AuthScreen.tsx         ← 登录/注册
-│           ├── HomeScreen.tsx         ← 首页（AI动向 + 日程 + 任务概览）
-│           ├── AcademicScreen.tsx     ← 学业看板（课表OCR + 待办管理）
-│           ├── NotificationsScreen.tsx← 原始通知列表
-│           ├── LeaveScreen.tsx        ← 请假服务（语音+手动）
-│           ├── RecognitionScreen.tsx  ← 人脸录入 + 通行历史
-│           ├── SettingsScreen.tsx     ← 设置中心
-│           ├── layout/
-│           │   ├── TopBar.tsx         ← 顶部栏（通知铃铛可点击）
-│           │   └── BottomNav.tsx      ← 底部导航（5个Tab）
-│           └── ui/
-│               └── Modal.tsx          ← 全局弹窗
-├── ethereal-campus/        ← v1（参考，不修改）
-├── backend/                ← 共享 FastAPI 后端（已为管理端实现部分API）
+├── docker-compose.yml          # ★ 全栈部署配置（前端+后端+数据库）
+├── frontend.Dockerfile         # ★ 前端多阶段构建（Node → Nginx）
+├── nginx.conf                  # ★ Nginx 配置（静态服务 + API 反向代理）
+├── deploy.sh                   # 一键部署脚本
+├── DEPLOY.md                   # 部署文档
+├── public/fonts/               # 本地字体包（解决 Google Fonts CORS 问题）
+│   ├── UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa1ZL7.woff2   # Inter 字体
+│   └── xn7gYHE41ni1AdIRggexSg.woff2                   # Manrope 字体
+│
+├── src/                        # ★ 管理端 Web（React，已完成，已接入后端）
+│   ├── services/               # API 服务层（auth.service.ts 等）
+│   ├── App.tsx
+│   └── components/
+│       ├── OverviewView/
+│       ├── ApprovalView/
+│       ├── PersonnelView/
+│       ├── NotificationCenter/
+│       └── SettingsView/
+│
+├── backend/                    # ★ 共享 FastAPI 后端
+│   ├── Dockerfile              # 生产后端镜像
+│   ├── requirements.txt        # Python 依赖
+│   ├── .env                    # 当前本地配置（git 忽略，不上传）
+│   ├── .env.production         # ★ 生产环境配置模板（已上传 git）
 │   └── app/
-│       ├── api/routes/     ← 已实现: auth, users, persons, approvals, notifications, dashboard, briefing
-│       ├── models/          ← 已实现: User, Person, ApprovalRequest, Notification, DailyBriefing, AuditLog
-│       ├── schemas/         ← 已实现: auth, user, person, approval, common, validators
-│       ├── services/        ← 已实现: auth, person, approval, notification, ai_briefing, ai_risk, audit
-│       ├── core/            ← config, database, security, types
-│       └── main.py          ← FastAPI 入口
-└── src/                    ← 管理端 Web（已完成，不修改）
+│       ├── main.py             # FastAPI 入口
+│       ├── api/routes/         # 已实现：auth, users, persons, approvals, notifications, dashboard, briefing
+│       ├── models/             # 已实现：User, Person, ApprovalRequest, Notification, DailyBriefing, AuditLog
+│       ├── schemas/            # 已实现：auth, user, person, approval, common, validators
+│       ├── services/           # 已实现：auth, person, approval, notification, ai_briefing, ai_risk, audit
+│       └── core/              # config, database, security, types
+│
+├── ethereal-campus/            # 学生端 App v1（参考，不开发）
+├── ethereal-campus-2/         # ★ 学生端 App v2（需要开发后端并接入）
+│   └── src/
+│       ├── App.tsx
+│       ├── types.ts            # TypeScript 接口定义
+│       └── components/
+│           ├── AuthScreen.tsx
+│           ├── HomeScreen.tsx
+│           ├── AcademicScreen.tsx
+│           ├── NotificationsScreen.tsx
+│           ├── LeaveScreen.tsx
+│           ├── RecognitionScreen.tsx
+│           └── SettingsScreen.tsx
+│
+└── ethereal-campus-2/src/components/layout/
+    ├── TopBar.tsx
+    └── BottomNav.tsx
 ```
 
 ---
 
-## 二、v2 与 v1 的主要差异（重点）
+## 三、当前状态总结
 
-### 2.1 导航结构变化
+### 已完成（本地已验证）
 
-v1 的 `ScheduleScreen` 已合并到 `AcademicScreen`，并新增通知独立页面：
+| 检查项 | 结果 |
+|--------|------|
+| 管理端 Web 前端构建 | ✅ 成功（JS bundle 中 `/api/v1`，无 localhost 硬编码） |
+| Google Fonts CORS | ✅ 已修复（改为本地字体包 `/fonts/...woff2`） |
+| 字体文件 | ✅ 已在 `public/fonts/` 目录 |
+| 前端 Dockerfile | ✅ 正确（`frontend.Dockerfile`，context 为 `.`） |
+| 后端 Dockerfile | ✅ 存在（`backend/Dockerfile`） |
+| nginx.conf | ✅ 正确（静态服务 + `/api/` 反向代理） |
+| docker-compose.yml | ✅ 正确（frontend + backend + db 整体编排） |
+| .env.production | ✅ 存在（不含敏感信息，可上传 git） |
+| deploy.sh | ✅ 存在（一键部署脚本） |
 
-| v1 Tab | v2 Tab |
-|--------|--------|
-| 首页 | 首页 |
-| 课表（ScheduleScreen） | **学业（AcademicScreen）** — 课表+待办合并 |
-| 服务 | 服务（不变） |
-| 识别 | 识别（不变） |
-| 设置 | 设置（不变） |
-| — | **通知（NotificationsScreen）** — 新增独立页面 |
+### 本地验证结果（关键）
 
-BottomNav `Screen` 类型：
-```typescript
-export type Screen = 'home' | 'academic' | 'services' | 'recognition' | 'settings' | 'notifications';
 ```
-
-### 2.2 TopBar 新增通知点击
-
-```typescript
-// TopBar 现在有 onNotifyClick 回调
-<TopBar school={appData.school} onNotifyClick={() => setActiveScreen('notifications')} />
+✅ JS bundle 中 API 路径: /api/v1
+✅ JS bundle 中无 localhost/127.0.0.1 硬编码
+✅ CSS 中无 Google Fonts CDN 引用
+✅ CSS 字体使用本地路径: url(/fonts/UcC73Fwr...woff2)
+✅ CSS 字体使用本地路径: url(/fonts/xn7gYHE...woff2)
 ```
-
-铃铛图标右上角有小红点（未读数），点击跳转 NotificationsScreen。
-
-### 2.3 首页重构（HomeScreen）
-
-v2 首页新增 **AI 动向卡片**（`aiNotices`），来自通知智能摘要：
-
-```typescript
-interface AISummarizedNotice {
-  id: string;
-  event: string;        // "物理实验课集合"
-  time: string;         // "明天 14:00"
-  location: string;     // "实验楼 302"
-  originalText: string; // 原始通知内容
-}
-```
-
-当 `aiNotices.length > 0` 时，顶部展示 AI 提炼的主动推送卡片；无动向时走常规视图。
-
-### 2.4 学业看板（AcademicScreen）
-
-v1 的 ScheduleScreen 整合进来，增加了 **待办管理**：
-
-Tab 切换：智慧课表 / 待办提醒
-
-**待办任务（Task）新增字段：**
-
-```typescript
-interface Task {
-  id: string;
-  title: string;
-  deadline: string;
-  type: 'report' | 'reading';
-  status: 'pending' | 'completed';     // ← 新增
-  aiHabitSummary?: string;              // ← 新增：AI 习惯建议
-  urgencyLevel?: 'low' | 'medium' | 'high'; // ← 新增
-}
-```
-
-支持：切换 pending/completed 筛选、勾选完成（`onToggleTask`）、高紧迫任务显示 URGENT 标签、AI 习惯摘要气泡。
-
-### 2.5 通知页面（NotificationsScreen）
-
-新增独立通知页面，展示原始通知列表：
-
-```typescript
-interface Notification {
-  id: string;
-  sender: string;        // "教务处" | "张老师 (物理)" | "智能助手"
-  content: string;       // 通知正文
-  time: string;         // "10:30"
-  type: 'homework' | 'school' | 'teacher';  // 图标样式
-  isRead: boolean;      // 是否已读
-}
-```
-
-支持：已读/未读状态、未读小红点、分类图标、底部"处理"按钮。
 
 ---
 
-## 三、学生端 v2 完整功能清单
+## 四、第一阶段任务：服务器部署（立即执行）
 
-### 3.1 AuthScreen（登录/注册）
+**目标**：将管理端 Web + FastAPI 后端 + PostgreSQL 部署到服务器，确保和本地一模一样。
+
+### 4.1 部署步骤
+
+#### 步骤 1：拉取代码
+
+```bash
+mkdir -p /opt && cd /opt
+git clone https://github.com/ShawnYin-hub/smart-campus.git
+cd smart-campus
+```
+
+#### 步骤 2：配置环境变量
+
+```bash
+# 复制生产配置模板
+cp backend/.env.production backend/.env
+
+# 编辑配置文件（必填两项）
+nano backend/.env
+```
+
+在 nano 中修改以下两个必填项：
+
+```
+SECRET_KEY=<用下面命令生成的随机密钥>
+DEEPSEEK_API_KEY=<你的 DeepSeek API Key>
+```
+
+生成随机密钥（退出 nano 后执行）：
+
+```bash
+openssl rand -hex 64
+```
+
+将输出的字符串粘贴到 `SECRET_KEY=` 后面。
+
+DeepSeek API Key 从 https://platform.deepseek.com 获取。
+
+保存退出 nano（Ctrl+X → Y → Enter）。
+
+#### 步骤 3：构建并启动所有服务
+
+> 首次构建需要 3-10 分钟，请耐心等待。
+
+```bash
+docker compose up -d --build
+```
+
+#### 步骤 4：等待服务就绪
+
+```bash
+docker compose ps
+```
+
+确认三个服务（`smart-campus-frontend`、`smart-campus-backend`、`smart-campus-db`）都是 `Up` 状态。
+
+#### 步骤 5：验证后端健康
+
+```bash
+curl http://localhost:8000/api/v1/health
+```
+
+预期返回：
+
+```json
+{"status":"ok"}
+```
+
+#### 步骤 6：查看初始管理员密码
+
+```bash
+docker compose logs backend 2>&1 | grep "DEFAULT ADMIN ACCOUNT"
+```
+
+找到输出中的密码，记录下来。
+
+#### 步骤 7：访问系统
+
+| 服务 | 地址 |
+|------|------|
+| 前端界面 | `http://你的服务器IP:80`（或直接 `http://你的服务器IP`） |
+| API 文档 | `http://你的服务器IP:8000/docs` |
+| 数据库 | `localhost:5432` |
+
+#### 步骤 8：首次登录
+
+- 用户名：`admin`
+- 密码：第 6 步查到的密码
+- 登录后请立即修改密码
+
+---
+
+## 五、第二阶段任务：学生端后端开发（第一阶段完成后执行）
+
+### 5.1 学生端 App v2 功能清单
+
+学生端 `ethereal-campus-2/` 的 6 个页面功能如下：
+
+#### AuthScreen（登录/注册）
 - 输入：姓名 + 学号
-- 登录/注册 Tab 切换
-- 预期 API：POST `/api/v1/student/auth/login`、POST `/api/v1/student/auth/register`
+- Tab 切换登录/注册
+- 预期 API：`POST /api/v1/student/auth/login`、`POST /api/v1/student/auth/register`
 
-### 3.2 HomeScreen（首页）
-- 顶部问候语 + 日期
-- AI 动向卡片（来自 `aiNotices`）
-- 当前课程卡片（`currentCourse`，可选）
-- 今日日程列表
-- 任务概览（显示前2个 pending 任务）
-- 底部浮动 AI 助手输入框
-- 预期 API：GET `/api/v1/student/home`
+#### HomeScreen（首页）
+- 问候语 + 日期
+- AI 动向卡片（`aiNotices`）
+- 今日课表（`todaySchedule`）
+- 任务概览（`tasks` 前 2 个 pending）
+- 底部浮动 AI 助手
+- 预期 API：`GET /api/v1/student/home`
 
-### 3.3 AcademicScreen（学业看板）
+#### AcademicScreen（学业看板）
 - Tab 智慧课表：
-  - AI OCR 识别上传（POST `/api/v1/student/schedule/ocr`）
-  - 识别预览 + 批量导入
-  - 手动录入课程表单（POST `/api/v1/student/schedule/add`）
-  - 当日课表展示（GET `/api/v1/student/schedule/today`）
+  - AI OCR 识别课表截图 → `POST /api/v1/student/schedule/ocr`
+  - 手动录入课程 → `POST /api/v1/student/schedule/add`
+  - 当日课表展示 → `GET /api/v1/student/schedule/today`
 - Tab 待办提醒：
   - 切换 pending/completed 筛选
-  - 勾选完成（PATCH `/api/v1/student/task/{id}/toggle`）
-  - AI 习惯摘要展示
-  - 高紧迫任务 URGENT 标签
+  - 勾选完成 → `PATCH /api/v1/student/task/{id}/toggle`
+  - AI 习惯摘要 + 高紧迫 URGENT 标签
 
-### 3.4 NotificationsScreen（原始通知）
-- GET `/api/v1/student/notifications` — 获取通知列表
-- PATCH `/api/v1/student/notifications/{id}/read` — 标记已读
-- 未读数显示（顶部 badge）
-- 分类图标：school（学校）、teacher（老师）、homework（作业）
+#### NotificationsScreen（通知页面）
+- 通知列表 → `GET /api/v1/student/notifications`
+- 标记已读 → `PATCH /api/v1/student/notifications/{id}/read`
+- 分类图标：school（学校）/ teacher（老师）/ homework（作业）
+- 未读数 badge
 
-### 3.5 LeaveScreen（请假服务）
-- AI 语音模拟（POST `/api/v1/student/leave/voice-parse` — 接收文字描述，LLM 提取请假信息）
-- 手动填写表单（POST `/api/v1/student/leave/apply`）
-- 历史请假记录（GET `/api/v1/student/leave/history`）
-- 状态显示：pending（待审核）、approved（已批准）、rejected（已驳回）
+#### LeaveScreen（请假服务）
+- AI 语音解析请假 → `POST /api/v1/student/leave/voice-parse`（接收文本，LLM 提取信息）
+- 手动填写请假表单 → `POST /api/v1/student/leave/apply`
+- 历史记录 → `GET /api/v1/student/leave/history`
+- 状态：pending / approved / rejected
 
-### 3.6 RecognitionScreen（无感通行）
-- 人脸录入（POST `/api/v1/student/face/register` — 现场拍摄或本地导入）
-- 通行历史（GET `/api/v1/student/recognition/history`）
-- 类型图标：entry（进门）、dining（食堂）、library（图书馆）
+#### RecognitionScreen（无感通行）
+- 人脸录入 → `POST /api/v1/student/face/register`
+- 通行历史 → `GET /api/v1/student/recognition/history`
 
-### 3.7 SettingsScreen（设置中心）
-- 个人信息展示（GET `/api/v1/student/profile`）
-- 修改密码（POST `/api/v1/student/password/change`）
-- 多语言切换（前端本地处理，不涉及后端）
+#### SettingsScreen（设置中心）
+- 个人信息 → `GET /api/v1/student/profile`
+- 修改密码 → `POST /api/v1/student/password/change`
 - 退出登录（清除本地 token）
 
----
+### 5.2 后端 API 完整清单
 
-## 四、数据模型（v2 types.ts）
+路由前缀：`/api/v1/student/`
+
+| HTTP | 端点 | 说明 |
+|------|------|------|
+| POST | `/student/auth/login` | 学生登录（学号+密码） |
+| POST | `/student/auth/register` | 学生注册 |
+| GET | `/student/auth/me` | 获取当前学生信息 |
+| GET | `/student/home` | 首页汇总（aiNotices + tasks + notifications + todaySchedule） |
+| GET | `/student/profile` | 学生档案 |
+| POST | `/student/password/change` | 修改密码 |
+| GET | `/student/schedule/today` | 获取当日课表 |
+| POST | `/student/schedule/ocr` | OCR 识别课表图片（multipart/form-data） |
+| POST | `/student/schedule/add` | 添加课程 |
+| PATCH | `/student/task/{id}/toggle` | 切换任务完成状态 |
+| GET | `/student/notifications` | 获取通知列表 |
+| PATCH | `/student/notifications/{id}/read` | 标记通知已读 |
+| GET | `/student/leave/history` | 请假历史 |
+| POST | `/student/leave/apply` | 提交请假申请 |
+| POST | `/student/leave/voice-parse` | 语音/文字解析请假信息 |
+| POST | `/student/face/register` | 人脸照片上传 |
+| GET | `/student/recognition/history` | 通行记录 |
+
+### 5.3 数据模型（前端 TypeScript 定义）
 
 ```typescript
-// 已在 ethereal-campus-2/src/types.ts 中定义
-
 interface UserProfile {
   name: string;
   id: string;           // 学号
@@ -211,12 +303,12 @@ interface Task {
   title: string;
   deadline: string;    // "明天 18:00"
   type: 'report' | 'reading';
-  status: 'pending' | 'completed';   // ← v2 新增
-  aiHabitSummary?: string;            // ← v2 新增：AI 建议
-  urgencyLevel?: 'low' | 'medium' | 'high'; // ← v2 新增
+  status: 'pending' | 'completed';   // v2 新增
+  aiHabitSummary?: string;            // v2 新增：AI 建议
+  urgencyLevel?: 'low' | 'medium' | 'high'; // v2 新增
 }
 
-interface AISummarizedNotice {       // ← v2 新增
+interface AISummarizedNotice {       // v2 新增
   id: string;
   event: string;       // "物理实验课集合"
   time: string;        // "明天 14:00"
@@ -224,7 +316,7 @@ interface AISummarizedNotice {       // ← v2 新增
   originalText: string;
 }
 
-interface Notification {              // ← v2 新增独立页面
+interface Notification {              // v2 新增
   id: string;
   sender: string;      // "教务处"
   content: string;
@@ -254,89 +346,17 @@ interface AppData {
   school: SchoolInfo;
   currentCourse?: Course;
   todaySchedule: Course[];
-  tasks: Task[];                       // ← v2：upcomingTasks → tasks
-  notifications: Notification[];         // ← v2 新增
-  aiNotices: AISummarizedNotice[];      // ← v2 新增
+  tasks: Task[];
+  notifications: Notification[];
+  aiNotices: AISummarizedNotice[];
   leaveHistory: LeaveRequest[];
   recognitionHistory: RecognitionHistory[];
 }
 ```
 
----
+### 5.4 后端参考：管理端 Web 的接入规范
 
-## 五、后端 API 设计
-
-### 5.1 路由前缀：`/api/v1/student/`
-
-| HTTP | 端点 | 说明 |
-|------|------|------|
-| POST | `/student/auth/login` | 学生登录（学号+密码） |
-| POST | `/student/auth/register` | 学生注册 |
-| GET | `/student/auth/me` | 获取当前学生信息 |
-| GET | `/student/home` | 首页汇总（aiNotices + tasks + notifications） |
-| GET | `/student/profile` | 学生档案 |
-| POST | `/student/password/change` | 修改密码 |
-| GET | `/student/schedule/today` | 获取当日课表 |
-| POST | `/student/schedule/ocr` | OCR 识别课表图片（multipart） |
-| POST | `/student/schedule/add` | 添加课程 |
-| PATCH | `/student/task/{id}/toggle` | 切换任务完成状态 ← **v2 新增** |
-| GET | `/student/notifications` | 获取通知列表 ← **v2 新增** |
-| PATCH | `/student/notifications/{id}/read` | 标记通知已读 ← **v2 新增** |
-| GET | `/student/leave/history` | 请假历史 |
-| POST | `/student/leave/apply` | 提交请假申请 |
-| POST | `/student/leave/voice-parse` | 语音/文字解析请假信息 |
-| POST | `/student/face/register` | 人脸照片上传 |
-| GET | `/student/recognition/history` | 通行记录 |
-
-### 5.2 新增数据模型（v2）
-
-- `backend/app/models/student_task.py` — **v2 新增**：学生待办任务（Task），含 `status`、`urgencyLevel`、AI 习惯分析字段
-- `backend/app/models/student_notification.py` — **v2 新增**：学生通知（Notification），含 `type`（school/teacher/homework）、`isRead`
-- `backend/app/models/ai_notice.py` — **v2 新增**：AI 提炼通知（AISummarizedNotice），由 LLM 从原始通知生成主动推送
-- 其余模型同 v1 Prompt（student_schedule.py、student_leave.py、student_face.py、student_access_log.py）
-
-### 5.3 AI 功能（关键）
-
-#### 首页 AI 动向（GET `/student/home`）
-- 调用 LLM 对当日通知列表进行摘要，生成 `aiNotices[]`
-- Prompt 示例：`"从以下通知中提取最值得学生关注的事项，格式为：事件名、时间、地点、原始文本"`
-- 参考现有 `ai_briefing_service.py` 的 API 调用方式
-
-#### 待办 AI 习惯分析（POST `/student/task/{id}/toggle`）
-- 学生完成/恢复任务时，记录行为数据
-- 根据历史数据生成 `aiHabitSummary`（如"建议提前2小时开始，根据您通常需要1.5小时完成"）
-- 根据 deadline 距离和历史完成速度计算 `urgencyLevel`
-
-#### OCR 识别（POST `/student/schedule/ocr`）
-- 接收课表截图图片
-- 调用多模态 LLM（Gemini/DeepSeek Vision）解析课程信息
-- 返回：`Course[]`
-
-#### 请假语音解析（POST `/student/leave/voice-parse`）
-- 接收：`{ "text": "我明天感冒了，需要请假两天" }`
-- 调用 LLM 提取：`{ type, startDate, endDate, reason }`
-
----
-
-## 六、前端接入指南
-
-### 6.1 新增 services 层
-
-在 `ethereal-campus-2/src/services/` 下新建：
-
-```
-ethereal-campus-2/src/services/
-├── api.config.ts           ← API 基础配置（Bearer token）
-├── auth.service.ts         ← 登录/注册/登出
-├── home.service.ts         ← 首页汇总（含 aiNotices）
-├── academic.service.ts     ← 课表 OCR + 添加课程
-├── task.service.ts         ← 待办管理（toggle、获取列表）← v2 新增
-├── notification.service.ts ← 通知列表 + 标记已读 ← v2 新增
-├── leave.service.ts        ← 请假申请 + 历史
-└── student.service.ts      ← 档案/人脸
-```
-
-### 6.2 API 请求配置
+#### API 请求配置
 
 ```typescript
 // ethereal-campus-2/src/services/api.config.ts
@@ -364,99 +384,66 @@ export async function apiRequest<T>(
 }
 ```
 
-### 6.3 App.tsx 接入要点
+#### JWT 认证（参考管理端）
 
-v2 App.tsx 中需要接入的关键位置：
+- Token 存储在 `localStorage.setItem('student_token', token)`
+- 请求头：`Authorization: Bearer <token>`
+- Token 过期处理：参考管理端 `src/services/api.config.ts` 中的实现
 
-```typescript
-// 1. 首页数据加载（useEffect）
-useEffect(() => {
-  if (isLoggedIn) {
-    fetchHomeData().then(data => {
-      setAppData(prev => ({
-        ...prev,
-        tasks: data.tasks,
-        notifications: data.notifications,
-        aiNotices: data.aiNotices,
-        todaySchedule: data.todaySchedule,
-      }));
-    });
-  }
-}, [isLoggedIn]);
-
-// 2. 任务切换
-const toggleTaskStatus = async (id: string) => {
-  await toggleTask(id); // PATCH /student/task/{id}/toggle
-  setAppData(prev => ({
-    ...prev,
-    tasks: prev.tasks.map(t => t.id === id ? { ...t, status: t.status === 'pending' ? 'completed' : 'pending' } : t)
-  }));
-};
-
-// 3. 通知铃铛点击（在 TopBar 中）
-// <TopBar school={appData.school} onNotifyClick={() => setActiveScreen('notifications')} />
-
-// 4. 退出登录
-const handleLogout = () => {
-  localStorage.removeItem('student_token');
-  // ...清空状态
-};
-```
-
----
-
-## 七、技术规范（与 v1 一致）
+### 5.5 技术规范
 
 - **Python：** 3.12，FastAPI
-- **数据库：** 复用现有 SQLAlchemy + SQLite（开发）/ PostgreSQL（生产）
-- **AI：** DeepSeek / Gemini API（参考 `ai_briefing_service.py`）
-- **认证：** JWT Bearer Token
-- **图片上传：** FastAPI `UploadFile`，multipart/form-data
+- **数据库：** SQLAlchemy + SQLite（开发）/ PostgreSQL（生产）
+- **AI：** DeepSeek API（参考 `backend/app/services/ai_briefing_service.py` 的调用方式）
+- **认证：** JWT Bearer Token（与现有管理端风格完全一致）
+- **图片上传：** FastAPI `UploadFile`，`multipart/form-data`
 - **禁止使用：** Firebase、Supabase 等第三方后端
 
 ---
 
-## 八、验收标准
+## 六、禁止事项
 
-1. ✅ 学生登录/注册 → 真实 JWT 认证
-2. ✅ 首页工作台 → 真实获取 `todaySchedule` + `tasks` + `notifications` + `aiNotices`
-3. ✅ AI 动向卡片 → 从通知列表经 LLM 摘要生成
-4. ✅ 课表 OCR 识别 → 调用多模态 AI 解析真实图片
-5. ✅ 课表手动添加 → 持久化到数据库
-6. ✅ 待办任务切换完成状态 → PATCH API + 本地状态更新
-7. ✅ 待办 AI 习惯摘要 → 根据行为数据生成
-8. ✅ 通知列表 → 独立页面展示原始通知
-9. ✅ 通知已读标记 → PATCH API + 顶部未读数实时更新
-10. ✅ 请假申请提交 → 写入数据库
-11. ✅ 请假语音解析 → 调用 LLM 提取信息
-12. ✅ 人脸录入 → 上传图片
-13. ✅ 通行记录读取 → 从数据库读取
-14. ✅ 修改密码 → 真实更新
-15. ✅ Settings 个人信息 → 真实读取
-
----
-
-## 九、禁止事项
-
-- ❌ 不要修改管理端 Web（`src/` 目录）
+- ❌ 不要修改管理端 Web 的任何代码（`src/` 目录）
 - ❌ 不要修改管理端后端已有路由（`backend/app/api/routes/`）
 - ❌ 不要修改管理端后端已有 Model（`backend/app/models/`）
-- ❌ 不要引入新数据库
+- ❌ 不要引入新数据库（全部复用现有 PostgreSQL）
 - ❌ 不要在 git 中提交 `.env` 文件
 - ❌ 不要修改 v1 代码（`ethereal-campus/`）
 
 ---
 
-## 十、项目启动
+## 七、项目启动命令
 
 ```bash
-# 后端
+# 后端（开发）
 cd backend
 pip install -r requirements.txt
 uvicorn app.main:app --reload --port 8000
 
-# 学生端 App v2
+# 管理端 Web（开发）
+cd ..
+npm install
+npm run dev
+# → http://localhost:3000
+
+# 学生端 App v2（开发）
 cd ethereal-campus-2
 npm install
 npm run dev
+# → http://localhost:5173（或其他端口）
 ```
+
+---
+
+## 八、部署后验证清单
+
+| 检查项 | 方法 |
+|--------|------|
+| 前端界面正常打开 | `http://服务器IP` |
+| API 文档可访问 | `http://服务器IP:8000/docs` |
+| 管理端登录功能正常 | 使用 admin 账户登录 |
+| API 健康检查通过 | `curl http://localhost:8000/api/v1/health` |
+| 数据库连接正常 | `docker compose logs backend` 无 DB 报错 |
+| 字体正常加载 | 浏览器 F12 检查无字体 CORS 错误 |
+| 管理端功能正常 | 审批、人员管理、通知等页面可正常操作 |
+
