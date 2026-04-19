@@ -9,3 +9,5 @@ __pycache__/
 *.db
 .env
 !.env.production
+*.xlsx
+*.xls
